@@ -18,6 +18,7 @@ interface AiGeneratorModalProps {
   isOpen: boolean;
   onClose: () => void;
   onGenerated: (data: BmcData) => void;
+  onOpenApiKey?: () => void;
 }
 
 const QUICK_INSPIRATIONS = [
@@ -65,6 +66,7 @@ export const AiGeneratorModal: React.FC<AiGeneratorModalProps> = ({
   isOpen,
   onClose,
   onGenerated,
+  onOpenApiKey,
 }) => {
   const [businessName, setBusinessName] = useState('');
   const [businessIdea, setBusinessIdea] = useState('');
@@ -191,8 +193,17 @@ export const AiGeneratorModal: React.FC<AiGeneratorModalProps> = ({
         ) : (
           <form onSubmit={handleSubmit} className="p-6 space-y-5">
             {errorMessage && (
-              <div className="p-3 text-xs rounded-xl bg-rose-50 border border-rose-200 text-rose-700">
-                {errorMessage}
+              <div className="p-3 text-xs rounded-xl bg-rose-50 border border-rose-200 text-rose-700 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
+                <span className="leading-relaxed">{errorMessage}</span>
+                {onOpenApiKey && errorMessage.includes('API') && (
+                  <button
+                    type="button"
+                    onClick={onOpenApiKey}
+                    className="shrink-0 px-3 py-1.5 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 transition-colors text-[11px]"
+                  >
+                    🔑 Masukkan API Key
+                  </button>
+                )}
               </div>
             )}
 

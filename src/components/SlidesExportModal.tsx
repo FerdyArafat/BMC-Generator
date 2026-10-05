@@ -15,6 +15,7 @@ import {
 import { User } from 'firebase/auth';
 import { BmcData } from '../types/bmc';
 import { exportToGoogleSlides } from '../services/slidesExport';
+import { requestSlidesAccess } from '../services/firebaseAuth';
 
 interface SlidesExportModalProps {
   isOpen: boolean;
@@ -45,19 +46,30 @@ export const SlidesExportModal: React.FC<SlidesExportModalProps> = ({
   if (!isOpen) return null;
 
   const handleStartExport = async () => {
-    if (!accessToken) {
-      setErrorMessage('Token Google Slides tidak ditemukan. Silakan masuk akun Google terlebih dahulu.');
-      return;
-    }
-
     setIsExporting(true);
     setErrorMessage(null);
     setCreatedDeckUrl(null);
+
+    let token = accessToken;
+    if (!token) {
+      try {
+        setExportStatusText('Meminta izin akses Google Slides...');
+        token = await requestSlidesAccess();
+      } catch (err: any) {
+        setIsExporting(false);
+        setErrorMessage(
+          err.message ||
+            'Izin akses Google Slides diperlukan. Jika akun Anda diblokir karena belum diverifikasi, Anda dapat menambahkan email Anda ke Test Users di Google Cloud Console atau gunakan Ekspor PDF.'
+        );
+        return;
+      }
+    }
+
     setExportProgress(10);
     setExportStatusText('Menyiapkan presentasi baru di Google Slides...');
 
     try {
-      const result = await exportToGoogleSlides(bmc, accessToken, (status, progress) => {
+      const result = await exportToGoogleSlides(bmc, token, (status, progress) => {
         setExportStatusText(status);
         setExportProgress(progress);
       });

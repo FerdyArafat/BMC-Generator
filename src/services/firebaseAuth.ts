@@ -22,7 +22,8 @@ try {
 
 let app: FirebaseApp | null = null;
 export let auth: Auth | null = null;
-let provider: GoogleAuthProvider | null = null;
+let defaultProvider: GoogleAuthProvider | null = null;
+let slidesProvider: GoogleAuthProvider | null = null;
 
 try {
   const config =
@@ -38,8 +39,12 @@ try {
   if (config.apiKey && config.projectId) {
     app = !getApps().length ? initializeApp(config) : getApps()[0];
     auth = getAuth(app);
-    provider = new GoogleAuthProvider();
-    provider.addScope('https://www.googleapis.com/auth/presentations');
+    // Standard provider for normal login (NON-SENSITIVE: will NEVER trigger "Akses Diblokir")
+    defaultProvider = new GoogleAuthProvider();
+
+    // Dedicated provider requesting Google Slides write access
+    slidesProvider = new GoogleAuthProvider();
+    slidesProvider.addScope('https://www.googleapis.com/auth/presentations');
   }
 } catch (error) {
   console.warn('Firebase initialization skipped or failed:', error);
@@ -63,7 +68,7 @@ export const initAuth = (
         if (cachedAccessToken) {
           if (onAuthSuccess) onAuthSuccess(user, cachedAccessToken);
         } else if (!isSigningIn) {
-          if (onAuthFailure) onAuthFailure();
+          if (onAuthSuccess) onAuthSuccess(user, '');
         }
       } else {
         cachedAccessToken = null;
@@ -77,8 +82,12 @@ export const initAuth = (
   }
 };
 
+/**
+ * Standard Google Login (Basic profile & email)
+ * NEVER blocked by Google App Verification!
+ */
 export const googleSignIn = async (): Promise<{ user: User; accessToken: string } | null> => {
-  if (!auth || !provider) {
+  if (!auth || !defaultProvider) {
     throw new Error(
       'Konfigurasi Firebase Auth belum tersedia di lingkungan ini. Pastikan kredensial Firebase telah diatur.'
     );
@@ -86,19 +95,60 @@ export const googleSignIn = async (): Promise<{ user: User; accessToken: string 
 
   try {
     isSigningIn = true;
-    const result = await signInWithPopup(auth, provider);
+    const result = await signInWithPopup(auth, defaultProvider);
     const credential = GoogleAuthProvider.credentialFromResult(result);
-    if (!credential?.accessToken) {
-      throw new Error('Gagal memperoleh token akses dari Google.');
-    }
-
-    cachedAccessToken = credential.accessToken;
-    return { user: result.user, accessToken: cachedAccessToken };
+    // credential.accessToken might be present or not needed for basic auth
+    const token = credential?.accessToken || '';
+    cachedAccessToken = token;
+    return { user: result.user, accessToken: token };
   } catch (error: any) {
     console.error('Sign in error:', error);
+    if (error?.code === 'auth/unauthorized-domain') {
+      const currentHost = typeof window !== 'undefined' ? window.location.hostname : 'Netlify';
+      throw new Error(
+        `Domain ${currentHost} belum didaftarkan di Firebase Console. Silakan tambahkan "${currentHost}" ke Firebase Authentication > Settings > Authorized domains.`
+      );
+    }
+    if (error?.code === 'auth/popup-blocked') {
+      throw new Error('Jendela popup login diblokir peramban. Harap izinkan popup untuk situs ini.');
+    }
+    if (error?.code === 'auth/popup-closed-by-user') {
+      throw new Error('Jendela login ditutup sebelum proses selesai.');
+    }
     throw error;
   } finally {
     isSigningIn = false;
+  }
+};
+
+/**
+ * Request Google Slides access specifically for presentation export
+ */
+export const requestSlidesAccess = async (): Promise<string> => {
+  if (!auth || !slidesProvider) {
+    throw new Error('Firebase Auth belum siap.');
+  }
+
+  try {
+    const result = await signInWithPopup(auth, slidesProvider);
+    const credential = GoogleAuthProvider.credentialFromResult(result);
+    if (!credential?.accessToken) {
+      throw new Error('Gagal mendapatkan izin akses Google Slides dari Google.');
+    }
+    cachedAccessToken = credential.accessToken;
+    return cachedAccessToken;
+  } catch (error: any) {
+    console.error('Slides permission error:', error);
+    if (
+      error?.message?.includes('verifikasi') ||
+      error?.message?.includes('unverified') ||
+      error?.code === 'auth/access-denied'
+    ) {
+      throw new Error(
+        'Aplikasi ini belum menyelesaikan verifikasi Google untuk akses Slides. Silakan gunakan Ekspor PDF Eksekutif yang siap pakai tanpa memerlukan izin Google, atau tambahkan email Anda ke Test Users di Google Cloud Console.'
+      );
+    }
+    throw error;
   }
 };
 

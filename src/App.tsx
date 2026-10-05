@@ -330,6 +330,7 @@ export default function App() {
           setBmc(generatedBmc);
           showToast(`Business Model Canvas "${generatedBmc.businessName}" berhasil digenerate!`);
         }}
+        onOpenApiKey={() => setIsApiKeyOpen(true)}
       />
 
       <TemplateSelectorModal
