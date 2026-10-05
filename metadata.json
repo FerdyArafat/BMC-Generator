@@ -1,0 +1,6 @@
+{
+  "name": "BMC Generator & Presenter",
+  "description": "Generator Business Model Canvas otomatis berbasis AI dengan template industri, editor interaktif, dan ekspor instan ke PDF & Google Slides.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
