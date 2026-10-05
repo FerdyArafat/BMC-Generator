@@ -1,4 +1,4 @@
-import { initializeApp, getApps } from 'firebase/app';
+import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
 import {
   getAuth,
   signInWithPopup,
@@ -6,14 +6,44 @@ import {
   onAuthStateChanged,
   User,
   signOut,
+  Auth,
 } from 'firebase/auth';
-import firebaseConfig from '../../firebase-applet-config.json';
 
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
-export const auth = getAuth(app);
+// Safely import or fallback firebase config
+let rawConfig: any = {};
+try {
+  // @ts-ignore
+  rawConfig = await import('../../firebase-applet-config.json')
+    .then((m) => m.default || m)
+    .catch(() => ({}));
+} catch (e) {
+  rawConfig = {};
+}
 
-const provider = new GoogleAuthProvider();
-provider.addScope('https://www.googleapis.com/auth/presentations');
+let app: FirebaseApp | null = null;
+export let auth: Auth | null = null;
+let provider: GoogleAuthProvider | null = null;
+
+try {
+  const config =
+    rawConfig && rawConfig.apiKey && rawConfig.projectId
+      ? rawConfig
+      : {
+          apiKey: import.meta.env.VITE_FIREBASE_API_KEY || '',
+          authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || '',
+          projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || '',
+          appId: import.meta.env.VITE_FIREBASE_APP_ID || '',
+        };
+
+  if (config.apiKey && config.projectId) {
+    app = !getApps().length ? initializeApp(config) : getApps()[0];
+    auth = getAuth(app);
+    provider = new GoogleAuthProvider();
+    provider.addScope('https://www.googleapis.com/auth/presentations');
+  }
+} catch (error) {
+  console.warn('Firebase initialization skipped or failed:', error);
+}
 
 let isSigningIn = false;
 let cachedAccessToken: string | null = null;
@@ -22,28 +52,44 @@ export const initAuth = (
   onAuthSuccess?: (user: User, token: string) => void,
   onAuthFailure?: () => void
 ) => {
-  return onAuthStateChanged(auth, async (user: User | null) => {
-    if (user) {
-      if (cachedAccessToken) {
-        if (onAuthSuccess) onAuthSuccess(user, cachedAccessToken);
-      } else if (!isSigningIn) {
-        // Token might need re-fetching or initial popup was done previously
+  if (!auth) {
+    if (onAuthFailure) onAuthFailure();
+    return () => {};
+  }
+
+  try {
+    return onAuthStateChanged(auth, async (user: User | null) => {
+      if (user) {
+        if (cachedAccessToken) {
+          if (onAuthSuccess) onAuthSuccess(user, cachedAccessToken);
+        } else if (!isSigningIn) {
+          if (onAuthFailure) onAuthFailure();
+        }
+      } else {
+        cachedAccessToken = null;
         if (onAuthFailure) onAuthFailure();
       }
-    } else {
-      cachedAccessToken = null;
-      if (onAuthFailure) onAuthFailure();
-    }
-  });
+    });
+  } catch (err) {
+    console.warn('Auth state change listener error:', err);
+    if (onAuthFailure) onAuthFailure();
+    return () => {};
+  }
 };
 
 export const googleSignIn = async (): Promise<{ user: User; accessToken: string } | null> => {
+  if (!auth || !provider) {
+    throw new Error(
+      'Konfigurasi Firebase Auth belum tersedia di lingkungan ini. Pastikan kredensial Firebase telah diatur.'
+    );
+  }
+
   try {
     isSigningIn = true;
     const result = await signInWithPopup(auth, provider);
     const credential = GoogleAuthProvider.credentialFromResult(result);
     if (!credential?.accessToken) {
-      throw new Error('Gagal mendapatkan token akses dari Google.');
+      throw new Error('Gagal memperoleh token akses dari Google.');
     }
 
     cachedAccessToken = credential.accessToken;
@@ -65,6 +111,8 @@ export const setCachedToken = (token: string | null) => {
 };
 
 export const logout = async () => {
-  await signOut(auth);
+  if (auth) {
+    await signOut(auth);
+  }
   cachedAccessToken = null;
 };
