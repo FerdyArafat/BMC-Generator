@@ -12,6 +12,7 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { BmcData } from '../types/bmc';
+import { apiGenerateBmc } from '../services/aiBmcService';
 
 interface AiGeneratorModalProps {
   isOpen: boolean;
@@ -101,26 +102,16 @@ export const AiGeneratorModal: React.FC<AiGeneratorModalProps> = ({
     }, 1800);
 
     try {
-      const response = await fetch('/api/bmc/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          businessName: businessName.trim(),
-          businessIdea: businessIdea.trim(),
-          industry,
-          targetAudience: targetAudience.trim(),
-          revenueModel: revenueModel.trim(),
-          uniqueAdvantage: uniqueAdvantage.trim(),
-          language,
-        }),
+      const result = await apiGenerateBmc({
+        businessName: businessName.trim(),
+        businessIdea: businessIdea.trim(),
+        industry,
+        targetAudience: targetAudience.trim(),
+        revenueModel: revenueModel.trim(),
+        uniqueAdvantage: uniqueAdvantage.trim(),
+        language,
       });
 
-      if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.error || 'Terjadi kesalahan saat memproses permintaan.');
-      }
-
-      const result = await response.json();
       clearInterval(stepInterval);
       setLoadingStep(5);
       setTimeout(() => {

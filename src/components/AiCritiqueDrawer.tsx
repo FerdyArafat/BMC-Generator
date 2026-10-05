@@ -11,6 +11,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { BmcData, AiCritiqueResult } from '../types/bmc';
+import { apiCritiqueBmc } from '../services/aiBmcService';
 
 interface AiCritiqueDrawerProps {
   isOpen: boolean;
@@ -27,17 +28,7 @@ export const AiCritiqueDrawer: React.FC<AiCritiqueDrawerProps> = ({ isOpen, onCl
     setIsLoading(true);
     setErrorMessage('');
     try {
-      const response = await fetch('/api/bmc/critique', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ canvasData: bmc, language: 'id' }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Gagal melakukan audit AI.');
-      }
-
-      const data = await response.json();
+      const data = await apiCritiqueBmc({ canvasData: bmc, language: 'id' });
       setCritique(data);
     } catch (err: any) {
       setErrorMessage(err.message || 'Gagal memuat audit BMC.');

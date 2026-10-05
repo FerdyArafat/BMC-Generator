@@ -14,6 +14,7 @@ import {
   Download,
   SlidersHorizontal,
   MoreVertical,
+  Key,
 } from 'lucide-react';
 import { User } from 'firebase/auth';
 
@@ -25,6 +26,7 @@ interface NavbarProps {
   onOpenSlidesExport: () => void;
   onOpenCritique: () => void;
   onOpenGuide: () => void;
+  onOpenApiKey: () => void;
   onReset: () => void;
   onClearCanvas: () => void;
   user: User | null;
@@ -43,6 +45,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenSlidesExport,
   onOpenCritique,
   onOpenGuide,
+  onOpenApiKey,
   onReset,
   onClearCanvas,
   user,
@@ -183,6 +186,20 @@ export const Navbar: React.FC<NavbarProps> = ({
                     <div>
                       <div className="font-semibold text-slate-900">Audit Kelayakan AI</div>
                       <div className="text-[10px] text-slate-400">Evaluasi skor & analisis risiko</div>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      onOpenApiKey();
+                      setIsToolsOpen(false);
+                    }}
+                    className="w-full text-left px-3.5 py-2 hover:bg-slate-50 flex items-center space-x-2.5 text-slate-700 font-medium"
+                  >
+                    <Key className="w-4 h-4 text-emerald-600" />
+                    <div>
+                      <div className="font-semibold text-slate-900">Kunci Gemini API</div>
+                      <div className="text-[10px] text-slate-400">Hosting Netlify / Klien Statis</div>
                     </div>
                   </button>
 

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Check, Sparkles, Loader2, BookOpen, Layers } from 'lucide-react';
 import { BmcItem } from '../types/bmc';
 import { BMC_GUIDE_DATA } from '../data/bmcGuideData';
+import { apiElaborateItem } from '../services/aiBmcService';
 
 interface BlockItemModalProps {
   isOpen: boolean;
@@ -78,20 +79,13 @@ export const BlockItemModal: React.FC<BlockItemModalProps> = ({
     if (!title.trim()) return;
     setIsElaborating(true);
     try {
-      const res = await fetch('/api/bmc/elaborate-item', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          blockName: blockTitle,
-          itemTitle: title,
-          itemDesc: description,
-          businessContext,
-        }),
+      const data = await apiElaborateItem({
+        blockName: blockTitle,
+        itemTitle: title,
+        itemDesc: description,
+        businessContext,
       });
 
-      if (!res.ok) throw new Error('Gagal memperdalam dengan AI');
-
-      const data = await res.json();
       if (data.enhancedTitle) setTitle(data.enhancedTitle);
       if (data.enhancedDescription) setDescription(data.enhancedDescription);
       if (data.recommendedTag && !tag) setTag(data.recommendedTag);

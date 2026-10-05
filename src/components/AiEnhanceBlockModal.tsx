@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Sparkles, X, Check, Plus, Loader2, ArrowRight, Lightbulb } from 'lucide-react';
 import { BmcItem } from '../types/bmc';
+import { apiEnhanceBlock } from '../services/aiBmcService';
 
 interface AiEnhanceBlockModalProps {
   isOpen: boolean;
@@ -34,27 +35,24 @@ export const AiEnhanceBlockModal: React.FC<AiEnhanceBlockModalProps> = ({
     setIsLoading(true);
     setErrorMessage('');
     try {
-      const response = await fetch('/api/bmc/enhance-block', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          blockKey,
-          blockName: blockTitle,
-          currentItems,
-          businessContext,
-          instruction: instruction.trim(),
-        }),
+      const data = await apiEnhanceBlock({
+        blockKey,
+        blockTitle,
+        currentItems,
+        businessContext,
       });
 
-      if (!response.ok) {
-        throw new Error('Gagal mendapatkan rekomendasi AI.');
-      }
+      const enrichItems = (data.recommendations || []).map((r, idx) => ({
+        id: `enhanced-${Date.now()}-${idx}`,
+        title: r.title,
+        description: r.description,
+        tag: r.tag || 'AI Rekomendasi',
+        color: 'purple' as const,
+      }));
 
-      const data = await response.json();
-      setRecommendations(data.recommendations || []);
-      setAdvice(data.advice || null);
+      setRecommendations(enrichItems);
       // Select all by default
-      const allNewIds = new Set<string>((data.recommendations || []).map((r: BmcItem) => r.id));
+      const allNewIds = new Set<string>(enrichItems.map((r) => r.id));
       setSelectedIds(allNewIds);
     } catch (err: any) {
       setErrorMessage(err.message || 'Terjadi kesalahan saat memproses.');

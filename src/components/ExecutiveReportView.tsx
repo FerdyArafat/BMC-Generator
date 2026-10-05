@@ -22,6 +22,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { BmcData, BmcItem } from '../types/bmc';
+import { apiGenerateSwot } from '../services/aiBmcService';
 
 interface ExecutiveReportViewProps {
   bmc: BmcData;
@@ -57,17 +58,11 @@ export const ExecutiveReportView: React.FC<ExecutiveReportViewProps> = ({
     setIsGeneratingSwot(true);
     setSwotError(null);
     try {
-      const response = await fetch('/api/bmc/generate-swot', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ canvasData: bmc, language: 'id' }),
+      const swotData = await apiGenerateSwot({
+        canvasData: bmc,
+        language: 'id',
       });
 
-      if (!response.ok) {
-        throw new Error('Gagal menghasilkan analisis SWOT dari AI.');
-      }
-
-      const swotData = await response.json();
       onUpdateBmc({
         ...bmc,
         swotSummary: {

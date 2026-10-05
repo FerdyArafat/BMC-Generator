@@ -23,6 +23,7 @@ import { BlockItemModal } from './components/BlockItemModal';
 import { AiEnhanceBlockModal } from './components/AiEnhanceBlockModal';
 import { AiCritiqueDrawer } from './components/AiCritiqueDrawer';
 import { BmcGuideModal } from './components/BmcGuideModal';
+import { ApiKeyModal } from './components/ApiKeyModal';
 import { BMC_TEMPLATES } from './data/templates';
 import { BmcData, BmcItem } from './types/bmc';
 import { initAuth, googleSignIn, logout, getAccessToken } from './services/firebaseAuth';
@@ -79,6 +80,7 @@ export default function App() {
   const [isCritiqueOpen, setIsCritiqueOpen] = useState(false);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [guideInitialBlock, setGuideInitialBlock] = useState<string | undefined>(undefined);
+  const [isApiKeyOpen, setIsApiKeyOpen] = useState(false);
 
   // Item Add/Edit modal state
   const [itemModal, setItemModal] = useState<{
@@ -232,6 +234,7 @@ export default function App() {
           setGuideInitialBlock(undefined);
           setIsGuideOpen(true);
         }}
+        onOpenApiKey={() => setIsApiKeyOpen(true)}
         onReset={handleReset}
         onClearCanvas={handleClearCanvas}
         user={user}
@@ -385,6 +388,12 @@ export default function App() {
         onClose={() => setIsGuideOpen(false)}
         initialBlockKey={guideInitialBlock}
         onInsertComponentToCanvas={handleInsertGuideComponent}
+      />
+
+      <ApiKeyModal
+        isOpen={isApiKeyOpen}
+        onClose={() => setIsApiKeyOpen(false)}
+        onSaved={() => showToast('Kunci Gemini API berhasil disimpan!')}
       />
     </div>
   );
